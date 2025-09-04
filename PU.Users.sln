@@ -6,6 +6,12 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PU.Users.Api", "PU.Users.Ap
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PU.Users.Tests", "tests\PU.Users.Tests\PU.Users.Tests.csproj", "{22222222-2222-2222-2222-222222222222}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{02EA681E-C7D8-13C7-8484-4AC65E1B71E8}"
+	ProjectSection(SolutionItems) = preProject
+		PU.Users.Api\tests\PU.Users.Tests\PU.Users.Tests.csproj = PU.Users.Api\tests\PU.Users.Tests\PU.Users.Tests.csproj
+		PU.Users.Api\tests\PU.Users.Tests\UserServiceTests.cs = PU.Users.Api\tests\PU.Users.Tests\UserServiceTests.cs
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -23,6 +29,9 @@ Global
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{22222222-2222-2222-2222-222222222222} = {02EA681E-C7D8-13C7-8484-4AC65E1B71E8}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {078129BD-1F7F-44E4-AC99-F3D145D5D747}

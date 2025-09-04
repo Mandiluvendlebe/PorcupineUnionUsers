@@ -1,45 +1,48 @@
 using System;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
-using Moq;
 using PU.Users.Api.Data;
 using PU.Users.Api.Models;
 using PU.Users.Api.Repositories;
 using PU.Users.Api.Services;
 using Xunit;
 
-namespace PU.Users.Tests;
-
-public class UserServiceTests
+namespace PU.Users.Tests
 {
-    private AppDbContext BuildDb()
+    public class UserServiceTests
     {
-        var options = new DbContextOptionsBuilder<AppDbContext>()
-            .UseInMemoryDatabase(Guid.NewGuid().ToString())
-            .Options;
-        return new AppDbContext(options);
-    }
+        private AppDbContext BuildDb()
+        {
+            var options = new DbContextOptionsBuilder<AppDbContext>()
+                .UseInMemoryDatabase(Guid.NewGuid().ToString()) // fresh DB for each test
+                .Options;
 
-    [Fact]
-    public async Task Create_And_Count_User()
-    {
-        using var db = BuildDb();
+            return new AppDbContext(options);
+        }
 
-        // Create a mock of IUserRepository
-        var mockRepo = new Mock<IUserRepository>();
+        [Fact]
+        public async Task Create_And_Count_User()
+        {
+            // Arrange
+            using var db = BuildDb();
+            var repo = new UserRepository(db);
+            var svc = new UserService(db, repo);
 
-        // Setup AddAsync to just return the user
-        mockRepo.Setup(r => r.AddAsync(It.IsAny<User>()))
-                .ReturnsAsync((User u) => u);
+            var newUser = new User
+            {
+                FirstName = "Test",
+                LastName = "User",
+                Email = "t@u.com"
+            };
 
-        var svc = new UserService(db, mockRepo.Object);
+            // Act
+            var createdUser = await svc.CreateAsync(newUser, new int[0]);
+            var count = await svc.CountAsync();
 
-        var u = await svc.CreateAsync(
-            new User { FirstName = "Test", LastName = "User", Email = "t@u.com" },
-            new int[0]
-        );
-
-        Assert.True(u.Id > 0);
-        Assert.Equal(1, await svc.CountAsync());
+            // Assert
+            Assert.NotNull(createdUser);
+            Assert.True(createdUser.Id > 0); // ID should be auto-generated
+            Assert.Equal(1, count); // DB should now have exactly 1 user
+        }
     }
 }

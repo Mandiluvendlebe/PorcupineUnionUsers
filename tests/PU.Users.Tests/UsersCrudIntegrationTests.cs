@@ -9,85 +9,85 @@ using System.Net.Http.Json;
 using System.Threading.Tasks;
 using Xunit;
 
-namespace PU.Users.Tests;
-
-public class UsersCrudIntegrationTests : IClassFixture<WebApplicationFactory<Program>>
+namespace PU.Users.Tests
 {
-    private readonly HttpClient _client;
-
-    public UsersCrudIntegrationTests(WebApplicationFactory<Program> factory)
+    public class UsersCrudIntegrationTests : IClassFixture<WebApplicationFactory<Program>>
     {
-        _client = factory.CreateClient();
-    }
+        private readonly HttpClient _client;
 
-    [Fact]
-    public async Task Create_Update_Delete_User_Workflow()
-    {
-        // Get existing groups
-        var groupsRes = await _client.GetAsync("/api/groups");
-        groupsRes.EnsureSuccessStatusCode();
-        var groups = await groupsRes.Content.ReadFromJsonAsync<List<GroupDto>>();
-
-        // If no groups exist, create a test group
-        if (groups == null || !groups.Any())
+        public UsersCrudIntegrationTests(WebApplicationFactory<Program> factory)
         {
-            var createGroup = new { name = "Test Group" };
-            var createRes = await _client.PostAsJsonAsync("/api/groups", createGroup);
-            createRes.EnsureSuccessStatusCode();
-            var createdGroup = await createRes.Content.ReadFromJsonAsync<GroupDto>();
-
-            if (createdGroup is not null)
-                groups = new List<GroupDto> { createdGroup };
-            else
-                groups = new List<GroupDto>();
+            _client = factory.CreateClient();
         }
 
-        // Safely get groupId
-        int groupId = groups.FirstOrDefault()?.Id ?? 0;
-        if (groupId == 0)
-            throw new InvalidOperationException("No groups available for integration test.");
-
-
-        // Create user
-        var createUser = new
+        [Fact]
+        public async Task Users_CRUD_Workflow_Should_Work_Correctly()
         {
-            firstName = "Intg",
-            lastName = "Test",
-            email = "intg@example.com",
-            groupIds = new int[] { groupId }
-        };
-        var createUserRes = await _client.PostAsJsonAsync("/api/users", createUser);
-        Assert.Equal(HttpStatusCode.Created, createUserRes.StatusCode);
+            // STEP 1: Get existing groups
+            var groupsRes = await _client.GetAsync("/api/groups");
+            groupsRes.EnsureSuccessStatusCode();
 
-        var createdUser = await createUserRes.Content.ReadFromJsonAsync<UserDto>();
-        Assert.NotNull(createdUser);
-        Assert.Equal("Intg", createdUser.FirstName);
+            var groups = await groupsRes.Content.ReadFromJsonAsync<List<GroupDto>>() ?? new List<GroupDto>();
 
-        // Update user
-        var updateUser = new
-        {
-            firstName = "Intg2",
-            lastName = "Test",
-            email = "intg2@example.com",
-            groupIds = new int[] { groupId }
-        };
-        var updateRes = await _client.PutAsJsonAsync($"/api/users/{createdUser.Id}", updateUser);
-        Assert.True(updateRes.StatusCode == HttpStatusCode.NoContent || updateRes.StatusCode == HttpStatusCode.OK);
+            // STEP 2: Create a test group if none exist
+            if (!groups.Any())
+            {
+                var createGroupPayload = new { name = "Integration Test Group" };
+                var createGroupRes = await _client.PostAsJsonAsync("/api/groups", createGroupPayload);
+                createGroupRes.EnsureSuccessStatusCode();
 
-        // Get and verify updated user
-        var getRes = await _client.GetAsync($"/api/users/{createdUser.Id}");
-        getRes.EnsureSuccessStatusCode();
-        var updatedUser = await getRes.Content.ReadFromJsonAsync<UserDto>();
-        Assert.NotNull(updatedUser);
-        Assert.Equal("Intg2", updatedUser.FirstName);
+                var createdGroup = await createGroupRes.Content.ReadFromJsonAsync<GroupDto>();
+                if (createdGroup != null)
+                {
+                    groups.Add(createdGroup);
+                }
+            }
 
-        // Delete user
-        var deleteRes = await _client.DeleteAsync($"/api/users/{createdUser.Id}");
-        Assert.True(deleteRes.StatusCode == HttpStatusCode.NoContent || deleteRes.StatusCode == HttpStatusCode.OK);
+            int groupId = groups.First().Id;
 
-        // Verify deletion
-        var afterDelete = await _client.GetAsync($"/api/users/{createdUser.Id}");
-        Assert.Equal(HttpStatusCode.NotFound, afterDelete.StatusCode);
+            // STEP 3: Create a user
+            var createUserPayload = new
+            {
+                firstName = "Intg",
+                lastName = "Test",
+                email = "intg@example.com",
+                groupIds = new[] { groupId }
+            };
+
+            var createUserRes = await _client.PostAsJsonAsync("/api/users", createUserPayload);
+            Assert.Equal(HttpStatusCode.Created, createUserRes.StatusCode);
+
+            var createdUser = await createUserRes.Content.ReadFromJsonAsync<UserDto>();
+            Assert.NotNull(createdUser);
+            Assert.Equal("Intg", createdUser!.FirstName);
+
+            // STEP 4: Update the user
+            var updateUserPayload = new
+            {
+                firstName = "Intg2",
+                lastName = "Test",
+                email = "intg2@example.com",
+                groupIds = new[] { groupId }
+            };
+
+            var updateRes = await _client.PutAsJsonAsync($"/api/users/{createdUser.Id}", updateUserPayload);
+            Assert.Contains(updateRes.StatusCode, new[] { HttpStatusCode.NoContent, HttpStatusCode.OK });
+
+            // STEP 5: Get the updated user and verify
+            var getRes = await _client.GetAsync($"/api/users/{createdUser.Id}");
+            getRes.EnsureSuccessStatusCode();
+
+            var updatedUser = await getRes.Content.ReadFromJsonAsync<UserDto>();
+            Assert.NotNull(updatedUser);
+            Assert.Equal("Intg2", updatedUser!.FirstName);
+
+            // STEP 6: Delete the user
+            var deleteRes = await _client.DeleteAsync($"/api/users/{createdUser.Id}");
+            Assert.Contains(deleteRes.StatusCode, new[] { HttpStatusCode.NoContent, HttpStatusCode.OK });
+
+            // STEP 7: Verify deletion
+            var afterDeleteRes = await _client.GetAsync($"/api/users/{createdUser.Id}");
+            Assert.Equal(HttpStatusCode.NotFound, afterDeleteRes.StatusCode);
+        }
     }
 }
-
