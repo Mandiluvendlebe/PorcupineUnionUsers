@@ -2,7 +2,11 @@ using System.Net;
 using System.Net.Http.Json;
 using Microsoft.AspNetCore.Mvc.Testing;
 using PU.Users.Api.DTOs;
+using System.Threading.Tasks;
+using System.Net.Http;
 using Xunit;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace PU.Users.Tests;
 

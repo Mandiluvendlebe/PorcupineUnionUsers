@@ -1,3 +1,6 @@
+
+
+
 using Microsoft.EntityFrameworkCore;
 using PU.Users.Api.Data;
 using PU.Users.Api.Services;
@@ -56,3 +59,7 @@ app.UseStaticFiles();
 app.MapControllers();
 
 app.Run();
+
+// Add this at the very end of Program.cs
+public partial class Program { }
+
