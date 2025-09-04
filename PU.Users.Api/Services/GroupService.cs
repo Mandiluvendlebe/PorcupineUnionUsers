@@ -7,7 +7,10 @@ namespace PU.Users.Api.Services;
 public class GroupService
 {
     private readonly AppDbContext _db;
-    public GroupService(AppDbContext db) => _db = db;
+    public GroupService(AppDbContext db)
+    {
+        _db = db;
+    }
 
     public async Task<List<Group>> GetAllAsync() =>
         await _db.Groups.AsNoTracking().ToListAsync();
