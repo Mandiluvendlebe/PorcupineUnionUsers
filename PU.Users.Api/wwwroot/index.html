@@ -1,0 +1,158 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>PU Users – Minimal UI</title>
+  <style>
+    body { font-family: system-ui, Arial, sans-serif; margin: 24px; }
+    input, select, button { padding: 6px; margin: 4px 0; }
+    table { border-collapse: collapse; width: 100%; margin-top: 12px; }
+    th, td { border: 1px solid #ddd; padding: 8px; }
+    th { background: #f2f2f2; }
+    .row { display: flex; gap: 24px; flex-wrap: wrap; }
+    .card { border: 1px solid #ddd; border-radius: 8px; padding: 16px; flex: 1 1 380px; }
+    .muted { color: #555; }
+    .pill { display: inline-block; padding: 2px 8px; border-radius: 999px; background: #eee; margin-right: 4px; }
+  </style>
+</head>
+<body>
+  <h1>Porcupine Union – Users</h1>
+  <p class="muted">Minimal UI to prove functionality. Data is served by the Web API.</p>
+
+  <div class="row">
+    <div class="card">
+      <h2>Create / Update User</h2>
+      <form id="userForm">
+        <input type="hidden" id="userId"/>
+        <label>First Name<br/><input id="firstName" required/></label><br/>
+        <label>Last Name<br/><input id="lastName" required/></label><br/>
+        <label>Email<br/><input id="email" type="email" required/></label><br/>
+        <label>Groups<br/>
+          <select id="groups" multiple size="4" style="min-width: 220px;"></select>
+        </label><br/>
+        <button type="submit">Save User</button>
+        <button type="button" id="resetBtn">Reset</button>
+      </form>
+    </div>
+
+    <div class="card">
+      <h2>Metrics</h2>
+      <div id="metrics"></div>
+    </div>
+  </div>
+
+  <h2>Users</h2>
+  <table id="usersTable">
+    <thead>
+      <tr><th>Id</th><th>Name</th><th>Email</th><th>Groups</th><th>Actions</th></tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+<script>
+async function api(path, options) {
+  const res = await fetch(path, { headers: { 'Content-Type':'application/json' }, ...options });
+  if (!res.ok) throw new Error(await res.text());
+  return res.status === 204 ? null : res.json();
+}
+
+async function loadGroups() {
+  const groups = await api('/api/groups');
+  const sel = document.getElementById('groups');
+  sel.innerHTML = '';
+  groups.forEach(g => {
+    const opt = document.createElement('option');
+    opt.value = g.id;
+    opt.textContent = `${g.name} (#${g.id})`;
+    sel.appendChild(opt);
+  });
+  return groups;
+}
+
+async function loadUsers() {
+  const users = await api('/api/users');
+  const tb = document.querySelector('#usersTable tbody');
+  tb.innerHTML = '';
+  users.forEach(u => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${u.id}</td>
+      <td>${u.firstName} ${u.lastName}</td>
+      <td>${u.email}</td>
+      <td>${u.groupIds.map(id => `<span class="pill">#${id}</span>`).join('')}</td>
+      <td>
+        <button data-id="${u.id}" class="edit">Edit</button>
+        <button data-id="${u.id}" class="del">Delete</button>
+      </td>`;
+    tb.appendChild(tr);
+  });
+}
+
+async function loadMetrics() {
+  const total = await api('/api/users/count');
+  const perGroup = await api('/api/groups/userCounts');
+  const div = document.getElementById('metrics');
+  div.innerHTML = `<p>Total users: <b>${total}</b></p>` +
+    `<p>Users per group: ${Object.entries(perGroup).map(([gid,count]) => `<span class="pill">#${gid}: ${count}</span>`).join('')}</p>`;
+}
+
+document.getElementById('usersTable').addEventListener('click', async (e) => {
+  const btn = e.target.closest('button');
+  if (!btn) return;
+  const id = btn.dataset?.id;
+  if (btn.classList.contains('edit')) {
+    const u = await api(`/api/users/${id}`);
+    document.getElementById('userId').value = u.id;
+    document.getElementById('firstName').value = u.firstName;
+    document.getElementById('lastName').value = u.lastName;
+    document.getElementById('email').value = u.email;
+
+    const sel = document.getElementById('groups');
+    Array.from(sel.options).forEach(o => o.selected = u.groupIds.includes(parseInt(o.value)));
+  } else if (btn.classList.contains('del')) {
+    if (confirm('Delete user #' + id + '?')) {
+      await fetch(`/api/users/${id}`, { method: 'DELETE' });
+      await loadUsers(); await loadMetrics();
+    }
+  }
+});
+      await loadUsers(); await loadMetrics();
+    }
+  }
+});
+
+document.getElementById('resetBtn').addEventListener('click', () => {
+  document.getElementById('userForm').reset();
+  document.getElementById('userId').value = '';
+});
+
+document.getElementById('userForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const id = document.getElementById('userId').value;
+  const firstName = document.getElementById('firstName').value.trim();
+  const lastName = document.getElementById('lastName').value.trim();
+  const email = document.getElementById('email').value.trim();
+  const groupsSel = document.getElementById('groups');
+  const groupIds = Array.from(groupsSel.selectedOptions).map(o => parseInt(o.value));
+
+  const payload = JSON.stringify({ firstName, lastName, email, groupIds });
+
+  if (id) {
+    await api(`/api/users/${id}`, { method: 'PUT', body: payload });
+  } else {
+    await api('/api/users', { method: 'POST', body: payload });
+  }
+  document.getElementById('userForm').reset();
+  document.getElementById('userId').value = '';
+  await loadUsers(); await loadMetrics();
+});
+
+(async function init() {
+  await loadGroups();
+  await loadUsers();
+  await loadMetrics();
+})();
+</script>
+</body>
+</html>
