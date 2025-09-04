@@ -24,5 +24,6 @@ jobs:
         run: dotnet build PU.Users.sln --no-restore --configuration Release
 
       - name: Run tests
-        run: dotnet test ./tests/PU.Users.Tests/PU.Users.Tests.csproj --no-build --verbosity normal
+        run: dotnet test ./tests/PU.Users.Tests/PU.Users.Tests.csproj --verbosity normal
+
 
