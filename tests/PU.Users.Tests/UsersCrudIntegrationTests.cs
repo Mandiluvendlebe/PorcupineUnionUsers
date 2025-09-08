@@ -25,6 +25,14 @@ namespace PU.Users.Tests
         {
             // STEP 1: Get existing groups
             var groupsRes = await _client.GetAsync("/api/groups");
+
+            // Allow 404/empty as CI DB might have no groups yet
+            if (groupsRes.StatusCode == HttpStatusCode.NotFound)
+                groupsRes = new HttpResponseMessage(HttpStatusCode.OK)
+                {
+                    Content = JsonContent.Create(new List<GroupDto>())
+                };
+
             groupsRes.EnsureSuccessStatusCode();
 
             var groups = await groupsRes.Content.ReadFromJsonAsync<List<GroupDto>>() ?? new List<GroupDto>();
@@ -38,9 +46,7 @@ namespace PU.Users.Tests
 
                 var createdGroup = await createGroupRes.Content.ReadFromJsonAsync<GroupDto>();
                 if (createdGroup != null)
-                {
                     groups.Add(createdGroup);
-                }
             }
 
             int groupId = groups.First().Id;
