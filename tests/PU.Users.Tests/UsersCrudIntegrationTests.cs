@@ -1,6 +1,5 @@
 using Microsoft.AspNetCore.Mvc.Testing;
 using PU.Users.Api.DTOs;
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
@@ -11,11 +10,11 @@ using Xunit;
 
 namespace PU.Users.Tests
 {
-    public class UsersCrudIntegrationTests : IClassFixture<WebApplicationFactory<Program>>
+    public class UsersCrudIntegrationTests : IClassFixture<CustomWebApplicationFactory>
     {
         private readonly HttpClient _client;
 
-        public UsersCrudIntegrationTests(WebApplicationFactory<Program> factory)
+        public UsersCrudIntegrationTests(CustomWebApplicationFactory factory)
         {
             _client = factory.CreateClient();
         }
@@ -26,7 +25,7 @@ namespace PU.Users.Tests
             // STEP 1: Get existing groups
             var groupsRes = await _client.GetAsync("/api/groups");
 
-            // Allow 404/empty as CI DB might have no groups yet
+            // Allow empty as CI DB might have no groups yet
             if (groupsRes.StatusCode == HttpStatusCode.NotFound)
                 groupsRes = new HttpResponseMessage(HttpStatusCode.OK)
                 {
