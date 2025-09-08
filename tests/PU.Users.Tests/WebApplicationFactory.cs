@@ -1,8 +1,9 @@
 ﻿using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using PU.Users.Api.Data;
+using PU.Users.Api.Models;
+using System.Linq;
 
 public class CustomWebApplicationFactory : WebApplicationFactory<Program>
 {
@@ -10,7 +11,6 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>
     {
         builder.ConfigureServices(services =>
         {
-            // Only reset DB if we're in Test environment
             using var scope = services.BuildServiceProvider().CreateScope();
             var env = scope.ServiceProvider.GetRequiredService<IWebHostEnvironment>();
 
@@ -19,6 +19,16 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>
                 var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
                 db.Database.EnsureDeleted();
                 db.Database.EnsureCreated();
+
+                // ✅ Seed a default group for integration tests
+                if (!db.Groups.Any())
+                {
+                    db.Groups.Add(new Group
+                    {
+                        Name = "Integration Test Group"
+                    });
+                    db.SaveChanges();
+                }
             }
         });
     }
