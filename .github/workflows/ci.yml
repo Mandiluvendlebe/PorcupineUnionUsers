@@ -9,6 +9,8 @@ on:
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
+    env:
+      ASPNETCORE_ENVIRONMENT: Test   # Use InMemory DB in CI
 
     steps:
     - uses: actions/checkout@v4
@@ -22,10 +24,11 @@ jobs:
       run: dotnet restore
 
     - name: Build
-      run: dotnet build --no-restore
+      run: dotnet build --no-restore --configuration Release
 
-    - name: Test only test project
-      run: dotnet test tests/PU.Users.Tests --no-build --verbosity normal
+    - name: Run tests
+      run: dotnet test tests/PU.Users.Tests/PU.Users.Tests.csproj --verbosity normal
+
 
 
 
