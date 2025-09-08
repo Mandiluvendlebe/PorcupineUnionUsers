@@ -1,6 +1,3 @@
-
-
-
 using Microsoft.EntityFrameworkCore;
 using PU.Users.Api.Data;
 using PU.Users.Api.Services;
@@ -10,11 +7,23 @@ using PU.Users.Api.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// DB
-var conn = builder.Configuration.GetConnectionString("DefaultConnection")
-    ?? "Server=(localdb)\\MSSQLLocalDB;Database=PUUsersDb;Trusted_Connection=True;";
-builder.Services.AddDbContext<AppDbContext>(opt => opt.UseSqlServer(conn));
+// Detect environment
+var env = builder.Environment;
 
+// Configure DB: Use SQL Server locally, InMemory for CI/Test
+if (env.EnvironmentName == "Test")
+{
+    builder.Services.AddDbContext<AppDbContext>(opt =>
+        opt.UseInMemoryDatabase("PUUsersTestDb"));
+}
+else
+{
+    var conn = builder.Configuration.GetConnectionString("DefaultConnection")
+        ?? "Server=(localdb)\\MSSQLLocalDB;Database=PUUsersDb;Trusted_Connection=True;";
+    builder.Services.AddDbContext<AppDbContext>(opt => opt.UseSqlServer(conn));
+}
+
+// Register services
 builder.Services.AddScoped<UserService>();
 builder.Services.AddScoped<PU.Users.Api.Repositories.IUserRepository, PU.Users.Api.Repositories.UserRepository>();
 builder.Services.AddScoped<GroupService>();
@@ -39,12 +48,15 @@ var mapperConfig = new MapperConfiguration(cfg =>
 IMapper mapper = mapperConfig.CreateMapper();
 app.Services.GetRequiredService<IMapper>();
 
-// Migrate/Seed on startup (dev)
-using (var scope = app.Services.CreateScope())
+// Migrate/Seed only for non-Test env
+if (!env.EnvironmentName.Equals("Test", StringComparison.OrdinalIgnoreCase))
 {
-    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-    db.Database.Migrate();
-    await SeedData.EnsureSeedAsync(db);
+    using (var scope = app.Services.CreateScope())
+    {
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        db.Database.Migrate();
+        await SeedData.EnsureSeedAsync(db);
+    }
 }
 
 if (app.Environment.IsDevelopment())
@@ -53,13 +65,11 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-app.UseDefaultFiles(); // serve index.html by default
+app.UseDefaultFiles();
 app.UseStaticFiles();
 
 app.MapControllers();
 
 app.Run();
 
-// Add this at the very end of Program.cs
 public partial class Program { }
-
